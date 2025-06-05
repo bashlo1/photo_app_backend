@@ -48,7 +48,7 @@ def get_images(auth_token, event_token):
                                 img.close()
                             img_json = {
                                 "id": id,
-                                "data": "data:image/jpeg;base64, " + data.decode("utf-8")
+                                "data": "data:image/webp;base64, " + data.decode("utf-8")
                             }
                             image_data.append(img_json)
                     return image_data

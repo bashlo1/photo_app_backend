@@ -1,0 +1,8 @@
+# ignore ALL .log files
+*.log
+
+# ignore ALL .DS_STORE files
+*.DS_STORE
+
+# ignore ALL files in ANY directory named __pycache__
+__pycache__/
