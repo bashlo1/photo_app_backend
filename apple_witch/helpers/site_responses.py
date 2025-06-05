@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from PIL import Image
+from PIL import Image, ImageOps
 import sys, os, json, base64, hashlib
 import io, base64, os
 
@@ -23,6 +23,14 @@ def get_config_data(auth_token, event_token):
         else:
             return "error"
 
+def is_image_file(file):
+    try:
+        with Image.open(file) as image:
+            image.verify()
+            return True
+    except (IOError, SyntaxError):
+        return False
+
 def get_images(auth_token, event_token):
     with open (f"{app_dir}/config.json", "r") as config_file:
         json_data = json.load(config_file)
@@ -33,15 +41,16 @@ def get_images(auth_token, event_token):
                     files = os.listdir(file_path)
                     image_data = []
                     for file in files:
-                        id = file.split(".")[0]
-                        with open(file_path + "/" + file, "rb") as img:
-                            data = base64.b64encode(img.read())
-                            img.close()
-                        img_json = {
-                            "id": id,
-                            "data": "data:image/jpeg;base64, " + data.decode("utf-8")
-                        }
-                        image_data.append(img_json)
+                        if is_image_file(file_path + "/" + file):
+                            id = file.split(".")[0]
+                            with open(file_path + "/" + file, "rb") as img:
+                                data = base64.b64encode(img.read())
+                                img.close()
+                            img_json = {
+                                "id": id,
+                                "data": "data:image/jpeg;base64, " + data.decode("utf-8")
+                            }
+                            image_data.append(img_json)
                     return image_data
                 else:
                     os.makedirs(file_path)
@@ -54,38 +63,22 @@ def get_images(auth_token, event_token):
             print("Authorization token is not valid...")
             return []
 
-def save_image(image_data, event_token):
-    with open (f"{app_dir}/config.json", "r") as config_file:
-        json_data = json.load(config_file)
-        file_path = json_data["file_path"]
+def optimize_image(file):
+    max_dimensions = (500, 500)
 
-        if not os.path.exists(file_path + event_token + "/"):
-            os.makedirs(file_path + event_token + "/")
+    image = Image.open(file)
+    image.thumbnail(max_dimensions)
+    image = ImageOps.exif_transpose(image)
 
-        header, encoded = image_data.split(",", 1)
-        image_data = base64.urlsafe_b64decode(encoded)
-        image_file = io.BytesIO(image_data)
-        image = Image.open(image_file)
+    return image
 
-        date = functions.get_iso_8601_date_time()
-        random_string = functions.generate_random_string(12)
-        string_to_hash = event_token + date + random_string
-        encoded_string = string_to_hash.encode('utf-8')
-        file_name = hashlib.sha256(encoded_string).hexdigest()
+def save_photo(request, file, UPLOAD_FOLDER):
+    date = functions.get_iso_8601_date_time()
+    random_string = functions.generate_random_string(12)
+    string_to_hash = request.headers["Event-Token"] + date + random_string
+    encoded_string = string_to_hash.encode('utf-8')
+    file_name = hashlib.sha256(encoded_string).hexdigest()
+    output_path = os.path.join(UPLOAD_FOLDER, request.headers["Event-Token"] ,file_name + "_" + file.filename)
 
-        image.save(file_path + event_token + "/" + file_name + ".webp")
-
-def submit_photos(auth_token, event_token, image_json):
-    with open (f"{app_dir}/config.json", "r") as config_file:
-        json_data = json.load(config_file)
-        if auth_token == json_data["auth_token"]:
-            #try:
-                #image_data = json.load(image_json)
-                for image in image_json:
-                    with open('/Users/bradleyashlock/Documents/photo_app_backend/test.txt', "w") as test:
-                        test.write(image[0])
-                    save_image(image[0], event_token)
-            #except Exception as e:
-            #    print(f"There was an error submitting new photos. Error: {e}")
-        else:
-            return print("Authorization token is not valid...")
+    image = optimize_image(file)
+    image.save(output_path, optimize=True, quality=95)
