@@ -16,7 +16,7 @@ import apple_witch.helpers.site_responses as site_responses
 app = Flask(__name__)
 CORS(app)
 
-UPLOAD_FOLDER = '/Users/bradleyashlock/Documents/photo_app_backend'
+UPLOAD_FOLDER = 'c:/Users/Bradley/Pictures/Wedding'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['AUTHORIZATION'] = "2`LMZ;h+rs1y_s@j"
 
@@ -57,4 +57,4 @@ def receive_post():
         abort(400)
 
 if __name__ == "__main__":
-    app.run(host="10.1.1.37", port="8080", debug=True, use_reloader=True)
+    app.run(host="10.0.0.12", port="8080", debug=True, use_reloader=True)

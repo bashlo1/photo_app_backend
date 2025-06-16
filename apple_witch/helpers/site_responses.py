@@ -63,10 +63,16 @@ def get_images(auth_token, event_token):
             print("Authorization token is not valid...")
             return []
 
+def change_extension(filepath, new_extension):
+    base, ext = os.path.splitext(filepath)
+    new_filepath = base + new_extension
+    os.rename(filepath, new_filepath)
+
 def optimize_image(file):
     max_dimensions = (500, 500)
 
     image = Image.open(file)
+    image = image.convert('RGB')
     image.thumbnail(max_dimensions)
     image = ImageOps.exif_transpose(image)
 
@@ -78,7 +84,10 @@ def save_photo(request, file, UPLOAD_FOLDER):
     string_to_hash = request.headers["Event-Token"] + date + random_string
     encoded_string = string_to_hash.encode('utf-8')
     file_name = hashlib.sha256(encoded_string).hexdigest()
-    output_path = os.path.join(UPLOAD_FOLDER, request.headers["Event-Token"] ,file_name + "_" + file.filename)
+    file_name = file_name  + "_" + file.filename.split("\\")[-1].split(".")[0] + ".jpg"
 
-    image = optimize_image(file)
-    image.save(output_path, optimize=True, quality=95)
+    output_path = os.path.join(UPLOAD_FOLDER, request.headers["Event-Token"], file_name)
+    file.save(output_path)
+
+    image = optimize_image(output_path)
+    image.save(output_path)
